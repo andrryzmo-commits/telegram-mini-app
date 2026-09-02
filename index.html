@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Путь к цели</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:#F6F5F2;
+    --surface:#FFFFFF;
+    --ink:#1E2420;
+    --ink-soft:#6B7168;
+    --line:#E4E1D9;
+    --moss:#3E5C46;
+    --moss-soft:#E7EEE7;
+    --amber:#B4763F;
+    --amber-soft:#F4E9DC;
+    --radius:20px;
+  }
+  [data-theme="dark"]{
+    --bg:#15181A;
+    --surface:#1D2124;
+    --ink:#F2F0EA;
+    --ink-soft:#96998F;
+    --line:#2C3134;
+    --moss:#7FAE8A;
+    --moss-soft:#20302A;
+    --amber:#D9A26A;
+    --amber-soft:#31281D;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  @font-face{
+    font-family:'Fraunces';
+    src:local('Fraunces');
+  }
+  .num{font-family:'Fraunces', Georgia, serif; font-variant-numeric: tabular-nums;}
+  #app{max-width:480px; margin:0 auto; padding:20px 18px 100px; min-height:100vh;}
+  .hidden{display:none !important;}
+
+  /* ---------- Onboarding ---------- */
+  .onboard-hero{padding:36px 4px 8px;}
+  .onboard-hero h1{font-size:28px; line-height:1.25; margin:0 0 6px; letter-spacing:-0.01em;}
+  .onboard-hero p{color:var(--ink-soft); margin:0; font-size:15px;}
+  .field{margin-top:22px;}
+  .field label{display:block; font-size:13px; color:var(--ink-soft); margin-bottom:8px;}
+  .field .input-row{display:flex; align-items:baseline; border-bottom:1.5px solid var(--line); padding-bottom:8px;}
+  .field input{
+    flex:1; border:none; background:none; outline:none; color:var(--ink);
+    font-family:'Fraunces', Georgia, serif; font-size:26px; padding:0;
+  }
+  .field .unit{color:var(--ink-soft); font-size:15px; margin-left:8px;}
+  .field.optional label span{color:var(--ink-soft); font-weight:400;}
+  .btn-primary{
+    width:100%; padding:16px; border:none; border-radius:14px; background:var(--moss); color:#fff;
+    font-size:16px; font-weight:600; margin-top:32px; cursor:pointer; transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-primary:disabled{opacity:.4;}
+  .btn-secondary{
+    width:100%; padding:14px; border:1.5px solid var(--line); border-radius:14px; background:transparent; color:var(--ink);
+    font-size:15px; font-weight:600; margin-top:10px; cursor:pointer;
+  }
+  .error-msg{color:var(--amber); font-size:13px; margin-top:8px; min-height:16px;}
+
+  /* ---------- Header ---------- */
+  .greeting{padding:8px 2px 18px; display:flex; justify-content:space-between; align-items:flex-start;}
+  .greeting h2{margin:0; font-size:20px; font-weight:600;}
+  .greeting .sub{color:var(--ink-soft); font-size:14px; margin-top:3px;}
+  .tabs{display:flex; gap:6px; margin-bottom:18px;}
+  .tab{
+    flex:1; text-align:center; padding:9px 0; border-radius:11px; font-size:13.5px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; background:transparent; border:none;
+  }
+  .tab.active{background:var(--surface); color:var(--ink);}
+
+  /* ---------- Hero progress ---------- */
+  .hero-card{background:var(--surface); border-radius:var(--radius); padding:26px 20px; display:flex; align-items:center; gap:18px;}
+  .ring-wrap{position:relative; width:112px; height:112px; flex-shrink:0;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring-center .pct{font-size:20px; font-weight:700;}
+  .hero-info .cur{font-size:34px; line-height:1;}
+  .hero-info .cur-label{color:var(--ink-soft); font-size:13px; margin-top:4px;}
+  .hero-info .goal-line{margin-top:12px; font-size:13.5px; color:var(--ink-soft);}
+  .hero-info .goal-line b{color:var(--ink); font-weight:600;}
+
+  .stat-row{display:flex; gap:10px; margin-top:14px;}
+  .stat-box{flex:1; background:var(--surface); border-radius:16px; padding:14px 14px;}
+  .stat-box .label{font-size:12px; color:var(--ink-soft); margin-bottom:4px;}
+  .stat-box .val{font-size:19px; font-weight:600;}
+  .stat-box .val.pos{color:var(--moss);}
+  .stat-box .val.neg{color:var(--amber);}
+
+  .add-btn{
+    width:100%; margin-top:16px; padding:16px; border:none; border-radius:16px;
+    background:var(--ink); color:var(--bg); font-size:15.5px; font-weight:600; cursor:pointer;
+  }
+  [data-theme="dark"] .add-btn{background:var(--moss); color:#0d130f;}
+
+  /* ---------- Section card ---------- */
+  .section{margin-top:26px;}
+  .section-title{font-size:15px; font-weight:700; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;}
+  .section-title .link{font-size:13px; font-weight:600; color:var(--moss); cursor:pointer;}
+
+  /* chart */
+  .chart-card{background:var(--surface); border-radius:var(--radius); padding:18px 14px 14px;}
+  .filters{display:flex; gap:6px; margin-bottom:14px;}
+  .filter{
+    flex:1; text-align:center; padding:7px 0; border-radius:9px; font-size:12.5px; font-weight:600;
+    color:var(--ink-soft); background:var(--bg); cursor:pointer; border:none;
+  }
+  .filter.active{background:var(--moss); color:#fff;}
+  .empty-chart{text-align:center; color:var(--ink-soft); font-size:13.5px; padding:30px 10px;}
+
+  /* history */
+  .history-list{background:var(--surface); border-radius:var(--radius); overflow:hidden;}
+  .history-item{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);}
+  .history-item:last-child{border-bottom:none;}
+  .history-item .date{font-size:14px;}
+  .history-item .date .time{color:var(--ink-soft); font-size:12px; display:block; margin-top:1px;}
+  .history-item .right{text-align:right;}
+  .history-item .weight{font-size:15.5px; font-weight:600;}
+  .history-item .delta{font-size:12.5px; margin-top:2px;}
+  .history-item .delta.pos{color:var(--moss);}
+  .history-item .delta.neg{color:var(--amber);}
+  .empty-state{text-align:center; padding:34px 20px; color:var(--ink-soft); font-size:14px;}
+
+  /* goal section */
+  .goal-card{background:var(--surface); border-radius:var(--radius); padding:18px 18px;}
+  .goal-row{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px;}
+  .goal-row:last-of-type{border-bottom:none;}
+  .goal-row .k{color:var(--ink-soft);}
+  .goal-row .v{font-weight:600;}
+  .goal-row .v.pos{color:var(--moss);}
+  .goal-row .v.neg{color:var(--amber);}
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:flex-end;
+    z-index:50; opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .overlay.show{opacity:1; pointer-events:auto;}
+  .sheet{
+    background:var(--surface); width:100%; border-radius:22px 22px 0 0; padding:22px 20px 26px;
+    transform:translateY(20px); transition:transform .2s ease; max-width:480px; margin:0 auto;
+  }
+  .overlay.show .sheet{transform:translateY(0);}
+  .sheet h3{margin:0 0 18px; font-size:18px;}
+  .sheet .input-row{display:flex; align-items:baseline; border-bottom:1.5px solid var(--line); padding-bottom:10px; margin-bottom:6px;}
+  .sheet input{flex:1; border:none; background:none; outline:none; color:var(--ink); font-family:'Fraunces',Georgia,serif; font-size:30px;}
+  .sheet .unit{color:var(--ink-soft); font-size:16px;}
+  .sheet .actions{display:flex; gap:10px; margin-top:18px;}
+  .sheet .actions button{flex:1;}
+  .btn-ghost{background:transparent; border:1.5px solid var(--line); color:var(--ink); border-radius:14px; padding:14px; font-size:15px; font-weight:600; cursor:pointer;}
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:var(--bg);
+    padding:12px 20px; border-radius:12px; font-size:13.5px; opacity:0; transition:all .25s ease; pointer-events:none; z-index:100;
+    max-width:90%; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== ONBOARDING ===== -->
+  <div id="screen-onboard" class="hidden">
+    <div class="onboard-hero">
+      <h1>Давай определим твою цель</h1>
+      <p>Пара цифр — и приложение само посчитает прогресс и построит график.</p>
+    </div>
+    <div class="field">
+      <label>Текущий вес</label>
+      <div class="input-row"><input id="ob-current" type="text" inputmode="decimal" placeholder="50.5"><span class="unit">кг</span></div>
+    </div>
+    <div class="field">
+      <label>Целевой вес</label>
+      <div class="input-row"><input id="ob-goal" type="text" inputmode="decimal" placeholder="65"><span class="unit">кг</span></div>
+    </div>
+    <div class="field optional">
+      <label><span>Рост (необязательно)</span></label>
+      <div class="input-row"><input id="ob-height" type="text" inputmode="decimal" placeholder="170"><span class="unit">см</span></div>
+    </div>
+    <div class="error-msg" id="ob-error"></div>
+    <button class="btn-primary" id="ob-submit">Начать путь</button>
+  </div>
+
+  <!-- ===== MAIN ===== -->
+  <div id="screen-main" class="hidden">
+    <div class="greeting">
+      <div>
+        <h2 id="greet-name">Привет 👋</h2>
+        <div class="sub" id="greet-goal">Твоя цель: —</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="home">Главная</button>
+      <button class="tab" data-tab="history">История</button>
+      <button class="tab" data-tab="goal">Цель</button>
+    </div>
+
+    <!-- HOME TAB -->
+    <div id="tab-home">
+      <div class="hero-card">
+        <div class="ring-wrap">
+          <svg width="112" height="112" viewBox="0 0 112 112">
+            <circle cx="56" cy="56" r="48" stroke="var(--line)" stroke-width="10" fill="none"/>
+            <circle id="ring-progress" cx="56" cy="56" r="48" stroke="var(--moss)" stroke-width="10" fill="none"
+                    stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+          </svg>
+          <div class="ring-center"><div class="pct num" id="ring-pct">0%</div></div>
+        </div>
+        <div class="hero-info">
+          <div class="cur num" id="hero-current">— кг</div>
+          <div class="cur-label">текущий вес</div>
+          <div class="goal-line">Цель: <b id="hero-goal-val">— кг</b></div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-box"><div class="label">Изменение от старта</div><div class="val" id="stat-change">—</div></div>
+        <div class="stat-box"><div class="label">Осталось</div><div class="val" id="stat-remaining">—</div></div>
+      </div>
+
+      <button class="add-btn" id="open-add">+ Записать вес</button>
+
+      <div class="section">
+        <div class="section-title">График<div class="link" id="chart-fullhistory">История →</div></div>
+        <div class="chart-card">
+          <div class="filters">
+            <button class="filter" data-range="7">7 дней</button>
+            <button class="filter" data-range="30">30 дней</button>
+            <button class="filter" data-range="90">90 дней</button>
+            <button class="filter active" data-range="all">Всё время</button>
+          </div>
+          <div id="chart-holder"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" class="hidden">
+      <div class="section" style="margin-top:6px;">
+        <div class="section-title">Все измерения</div>
+        <div class="history-list" id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- GOAL TAB -->
+    <div id="tab-goal" class="hidden">
+      <div class="section" style="margin-top:6px;">
+        <div class="section-title">Моя цель</div>
+        <div class="goal-card">
+          <div class="goal-row"><span class="k">Стартовый вес</span><span class="v" id="g-start">—</span></div>
+          <div class="goal-row"><span class="k">Текущий вес</span><span class="v" id="g-current">—</span></div>
+          <div class="goal-row"><span class="k">Целевой вес</span><span class="v" id="g-target">—</span></div>
+          <div class="goal-row"><span class="k">Изменение</span><span class="v" id="g-change">—</span></div>
+          <div class="goal-row"><span class="k">Осталось</span><span class="v" id="g-remaining">—</span></div>
+          <div class="goal-row"><span class="k">Прогресс</span><span class="v" id="g-progress">—</span></div>
+        </div>
+        <button class="btn-secondary" id="edit-goal-btn">Изменить целевой вес</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Статистика</div>
+        <div class="goal-card">
+          <div class="goal-row"><span class="k">Всего записей</span><span class="v" id="s-count">0</span></div>
+          <div class="goal-row"><span class="k">Первая запись</span><span class="v" id="s-first">—</span></div>
+          <div class="goal-row"><span class="k">Последняя запись</span><span class="v" id="s-last">—</span></div>
+          <div class="goal-row"><span class="k">Среднее изменение / запись</span><span class="v" id="s-avg">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add weight modal -->
+<div class="overlay" id="overlay-add">
+  <div class="sheet">
+    <h3>Какой у тебя вес сегодня?</h3>
+    <div class="input-row"><input id="add-weight-input" type="text" inputmode="decimal" placeholder="53.4"><span class="unit">кг</span></div>
+    <div class="error-msg" id="add-error"></div>
+    <div class="actions">
+      <button class="btn-ghost" id="add-cancel">Отмена</button>
+      <button class="btn-primary" style="margin-top:0;" id="add-save">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit goal modal -->
+<div class="overlay" id="overlay-goal">
+  <div class="sheet">
+    <h3>Новый целевой вес</h3>
+    <div class="input-row"><input id="goal-weight-input" type="text" inputmode="decimal" placeholder="65"><span class="unit">кг</span></div>
+    <div class="error-msg" id="goal-error"></div>
+    <div class="actions">
+      <button class="btn-ghost" id="goal-cancel">Отмена</button>
+      <button class="btn-primary" style="margin-top:0;" id="goal-save">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Telegram bootstrap ---------------- */
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  let tgUser = null;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+    applyTelegramTheme();
+    tg.onEvent && tg.onEvent('themeChanged', applyTelegramTheme);
+  }
+  if (!tgUser) {
+    // Demo fallback so the app is fully explorable outside Telegram
+    tgUser = { id: 'demo_user', first_name: 'Гость' };
+  }
+  const USER_ID = String(tgUser.id);
+
+  function displayName(u){
+    const full = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+    return full || (u.username ? '@' + u.username : 'друг');
+  }
+  function usernameTag(u){
+    return u.username ? '@' + u.username : null;
+  }
+
+  function applyTelegramTheme(){
+    const p = tg.themeParams || {};
+    const isDark = (tg.colorScheme === 'dark');
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }
+
+  /* ---------------- Storage helpers (real backend API) ---------------- */
+  const initDataHeader = (tg && tg.initData) ? tg.initData : '';
+
+  async function api(path, opts){
+    opts = opts || {};
+    opts.headers = Object.assign({'Content-Type':'application/json', 'X-Telegram-Init-Data': initDataHeader}, opts.headers || {});
+    const res = await fetch(path, opts);
+    if (!res.ok) throw new Error('api_error_' + res.status);
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  }
+  async function loadProfile(){
+    try{ return await api('/api/profile'); }catch(e){ return null; }
+  }
+  async function saveProfile(p){
+    return api('/api/profile', { method:'POST', body: JSON.stringify({ startWeight:p.startWeight, goalWeight:p.goalWeight, height:p.height }) });
+  }
+  async function updateGoal(goalWeight){
+    return api('/api/profile/goal', { method:'PUT', body: JSON.stringify({ goalWeight }) });
+  }
+  async function loadEntries(){
+    try{ return await api('/api/entries'); }catch(e){ return []; }
+  }
+  async function addEntryApi(weight){
+    return api('/api/entries', { method:'POST', body: JSON.stringify({ weight }) });
+  }
+
+  /* ---------------- State ---------------- */
+  let profile = null;
+  let entries = [];
+  let currentRange = 'all';
+
+  /* ---------------- Utils ---------------- */
+  function fmt(n){
+    const r = Math.round(n * 10) / 10;
+    return (Number.isInteger(r) ? r : r.toFixed(1)).toString();
+  }
+  function parseWeight(str){
+    if (typeof str !== 'string') return null;
+    str = str.trim().replace(',', '.');
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(str)) return null;
+    const v = parseFloat(str);
+    if (isNaN(v) || v <= 0 || v > 400) return null;
+    return Math.round(v * 100) / 100;
+  }
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=> t.classList.remove('show'), 2200);
+  }
+  function todayISO(){ return new Date().toISOString(); }
+  function fmtDate(iso){
+    const d = new Date(iso);
+    const today = new Date();
+    const isToday = d.toDateString() === today.toDateString();
+    const yest = new Date(today); yest.setDate(today.getDate()-1);
+    const isYest = d.toDateString() === yest.toDateString();
+    if (isToday) return 'Сегодня';
+    if (isYest) return 'Вчера';
+    return d.toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+  }
+  function fmtTime(iso){
+    return new Date(iso).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  /* ---------------- Progress math ---------------- */
+  function computeProgress(p, currentW){
+    const start = p.startWeight, goal = p.goalWeight;
+    let pct;
+    if (goal === start) pct = 100;
+    else pct = ((currentW - start) / (goal - start)) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+    const changeFromStart = currentW - start;
+    const remaining = goal - currentW; // can be negative if overshot
+    return { pct, changeFromStart, remaining };
+  }
+
+  /* ---------------- Rendering ---------------- */
+  function render(){
+    if (!profile){
+      show('screen-onboard');
+      return;
+    }
+    show('screen-main');
+    const currentW = entries.length ? entries[entries.length-1].weight : profile.startWeight;
+    const { pct, changeFromStart, remaining } = computeProgress(profile, currentW);
+
+    const tag = usernameTag(tgUser);
+    document.getElementById('greet-name').textContent = 'Привет, ' + displayName(tgUser) + ' 👋';
+    document.getElementById('greet-goal').textContent = (tag ? tag + ' · ' : '') + 'Твоя цель: ' + fmt(profile.startWeight) + ' → ' + fmt(profile.goalWeight) + ' кг';
+
+    document.getElementById('hero-current').textContent = fmt(currentW) + ' кг';
+    document.getElementById('hero-goal-val').textContent = fmt(profile.goalWeight) + ' кг';
+    document.getElementById('ring-pct').textContent = Math.round(pct) + '%';
+    const circumference = 301.6;
+    document.getElementById('ring-progress').setAttribute('stroke-dashoffset', circumference * (1 - pct/100));
+
+    const changeEl = document.getElementById('stat-change');
+    changeEl.textContent = (changeFromStart >= 0 ? '+' : '') + fmt(changeFromStart) + ' кг';
+    changeEl.className = 'val ' + (movingTowardGoal(profile, changeFromStart) ? 'pos' : 'neg');
+
+    const remEl = document.getElementById('stat-remaining');
+    remEl.textContent = fmt(Math.abs(remaining)) + ' кг' + (remaining < 0 ? ' (цель пройдена)' : '');
+
+    // Goal tab
+    document.getElementById('g-start').textContent = fmt(profile.startWeight) + ' кг';
+    document.getElementById('g-current').textContent = fmt(currentW) + ' кг';
+    document.getElementById('g-target').textContent = fmt(profile.goalWeight) + ' кг';
+    const gChange = document.getElementById('g-change');
+    gChange.textContent = (changeFromStart >= 0 ? '+' : '') + fmt(changeFromStart) + ' кг';
+    gChange.className = 'v ' + (movingTowardGoal(profile, changeFromStart) ? 'pos' : 'neg');
+    document.getElementById('g-remaining').textContent = fmt(Math.abs(remaining)) + ' кг';
+    document.getElementById('g-progress').textContent = Math.round(pct*10)/10 + '%';
+
+    // Stats tab
+    document.getElementById('s-count').textContent = entries.length;
+    document.getElementById('s-first').textContent = entries.length ? fmtDate(entries[0].date) : '—';
+    document.getElementById('s-last').textContent = entries.length ? fmtDate(entries[entries.length-1].date) : '—';
+    if (entries.length > 1){
+      const total = entries[entries.length-1].weight - entries[0].weight;
+      document.getElementById('s-avg').textContent = fmt(total/(entries.length-1)) + ' кг';
+    } else {
+      document.getElementById('s-avg').textContent = '—';
+    }
+
+    renderHistory();
+    renderChart();
+  }
+
+  function movingTowardGoal(p, changeFromStart){
+    if (p.goalWeight >= p.startWeight) return changeFromStart >= 0;
+    return changeFromStart <= 0;
+  }
+
+  function renderHistory(){
+    const list = document.getElementById('history-list');
+    if (!entries.length){
+      list.innerHTML = '<div class="empty-state">Пока нет ни одного измерения.<br>Нажми «Записать вес», чтобы начать.</div>';
+      return;
+    }
+    const reversed = entries.slice().reverse();
+    list.innerHTML = reversed.map((e, i) => {
+      const prev = reversed[i+1];
+      let deltaHtml = '';
+      if (prev){
+        const d = Math.round((e.weight - prev.weight)*100)/100;
+        const cls = d === 0 ? '' : (movingTowardGoal(profile, d) ? 'pos' : 'neg');
+        deltaHtml = '<div class="delta ' + cls + '">' + (d>0?'+':'') + fmt(d) + ' кг</div>';
+      }
+      return '<div class="history-item">' +
+        '<div class="date">' + fmtDate(e.date) + '<span class="time">' + fmtTime(e.date) + '</span></div>' +
+        '<div class="right"><div class="weight">' + fmt(e.weight) + ' кг</div>' + deltaHtml + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderChart(){
+    const holder = document.getElementById('chart-holder');
+    let data = entries;
+    if (currentRange !== 'all'){
+      const days = parseInt(currentRange, 10);
+      const cutoff = Date.now() - days*24*60*60*1000;
+      data = entries.filter(e => new Date(e.date).getTime() >= cutoff);
+    }
+    if (data.length < 2){
+      holder.innerHTML = '<div class="empty-chart">' +
+        (entries.length === 0 ? 'Добавь хотя бы одно измерение, чтобы увидеть график.' : 'Недостаточно данных за этот период — попробуй другой фильтр.') +
+      '</div>';
+      return;
+    }
+    const W = 300, H = 160, PAD = 14;
+    const weights = data.map(e => e.weight).concat([profile.startWeight, profile.goalWeight]);
+    let min = Math.min.apply(null, weights), max = Math.max.apply(null, weights);
+    if (min === max){ min -= 1; max += 1; }
+    const span = max - min;
+    const x = i => PAD + (i/(data.length-1)) * (W - PAD*2);
+    const y = w => H - PAD - ((w - min)/span) * (H - PAD*2);
+
+    const linePts = data.map((e,i) => x(i) + ',' + y(e.weight)).join(' ');
+    const startY = y(profile.startWeight);
+    const goalY = y(profile.goalWeight);
+
+    const css = getComputedStyle(document.documentElement);
+    const moss = css.getPropertyValue('--moss').trim() || '#3E5C46';
+    const line = css.getPropertyValue('--line').trim() || '#E4E1D9';
+    const inkSoft = css.getPropertyValue('--ink-soft').trim() || '#6B7168';
+
+    const svg = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="180" preserveAspectRatio="none">' +
+      '<line x1="0" y1="'+goalY+'" x2="'+W+'" y2="'+goalY+'" stroke="'+moss+'" stroke-width="1" stroke-dasharray="3,4" opacity="0.6"/>' +
+      '<line x1="0" y1="'+startY+'" x2="'+W+'" y2="'+startY+'" stroke="'+inkSoft+'" stroke-width="1" stroke-dasharray="3,4" opacity="0.4"/>' +
+      '<polyline points="'+linePts+'" fill="none" stroke="'+moss+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      data.map((e,i)=> '<circle cx="'+x(i)+'" cy="'+y(e.weight)+'" r="'+(i===data.length-1?3.5:2)+'" fill="'+moss+'"/>').join('') +
+    '</svg>';
+
+    const first = fmtDate(data[0].date), last = fmtDate(data[data.length-1].date);
+    holder.innerHTML = svg + '<div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-soft); margin-top:4px;"><span>'+first+'</span><span>'+last+'</span></div>';
+  }
+
+  function show(id){
+    ['screen-onboard','screen-main'].forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+  }
+
+  /* ---------------- Tabs ---------------- */
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('tab-home').classList.toggle('hidden', tab !== 'home');
+      document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
+      document.getElementById('tab-goal').classList.toggle('hidden', tab !== 'goal');
+    });
+  });
+  document.getElementById('chart-fullhistory').addEventListener('click', () => {
+    document.querySelector('.tab[data-tab="history"]').click();
+  });
+
+  /* ---------------- Chart filters ---------------- */
+  document.querySelectorAll('.filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRange = btn.dataset.range;
+      renderChart();
+    });
+  });
+
+  /* ---------------- Onboarding submit ---------------- */
+  document.getElementById('ob-submit').addEventListener('click', async () => {
+    const cur = parseWeight(document.getElementById('ob-current').value);
+    const goal = parseWeight(document.getElementById('ob-goal').value);
+    const heightRaw = document.getElementById('ob-height').value.trim();
+    const err = document.getElementById('ob-error');
+    if (!cur || !goal){
+      err.textContent = 'Укажи корректный текущий и целевой вес (например, 53.4).';
+      return;
+    }
+    let height = null;
+    if (heightRaw){
+      const h = parseFloat(heightRaw.replace(',', '.'));
+      if (!isNaN(h) && h > 50 && h < 260) height = Math.round(h*10)/10;
+    }
+    err.textContent = '';
+    const p = { startWeight: cur, goalWeight: goal, height, createdAt: todayISO() };
+    try{
+      await saveProfile(p);
+      profile = p;
+      entries = await loadEntries();
+      tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+      render();
+    }catch(e){
+      err.textContent = 'Не получилось сохранить. Проверь соединение и попробуй снова.';
+    }
+  });
+
+  /* ---------------- Add weight modal ---------------- */
+  const overlayAdd = document.getElementById('overlay-add');
+  document.getElementById('open-add').addEventListener('click', () => {
+    document.getElementById('add-weight-input').value = '';
+    document.getElementById('add-error').textContent = '';
+    overlayAdd.classList.add('show');
+    setTimeout(()=> document.getElementById('add-weight-input').focus(), 200);
+  });
+  document.getElementById('add-cancel').addEventListener('click', () => overlayAdd.classList.remove('show'));
+  document.getElementById('add-save').addEventListener('click', async () => {
+    const v = parseWeight(document.getElementById('add-weight-input').value);
+    const err = document.getElementById('add-error');
+    if (!v){ err.textContent = 'Введи вес числом, например 53.4'; return; }
+    try{
+      const saved = await addEntryApi(v);
+      entries.push({ date: saved.date, weight: saved.weight });
+      overlayAdd.classList.remove('show');
+      tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+      toast('Вес сохранён');
+      render();
+    }catch(e){
+      err.textContent = 'Не получилось сохранить. Проверь соединение и попробуй снова.';
+    }
+  });
+
+  /* ---------------- Edit goal modal ---------------- */
+  const overlayGoal = document.getElementById('overlay-goal');
+  document.getElementById('edit-goal-btn').addEventListener('click', () => {
+    document.getElementById('goal-weight-input').value = fmt(profile.goalWeight);
+    document.getElementById('goal-error').textContent = '';
+    overlayGoal.classList.add('show');
+    setTimeout(()=> document.getElementById('goal-weight-input').focus(), 200);
+  });
+  document.getElementById('goal-cancel').addEventListener('click', () => overlayGoal.classList.remove('show'));
+  document.getElementById('goal-save').addEventListener('click', async () => {
+    const v = parseWeight(document.getElementById('goal-weight-input').value);
+    const err = document.getElementById('goal-error');
+    if (!v){ err.textContent = 'Введи вес числом, например 65'; return; }
+    try{
+      await updateGoal(v);
+      profile.goalWeight = v;
+      overlayGoal.classList.remove('show');
+      toast('Цель обновлена');
+      render();
+    }catch(e){
+      err.textContent = 'Не получилось сохранить. Проверь соединение и попробуй снова.';
+    }
+  });
+
+  /* ---------------- Boot ---------------- */
+  (async function boot(){
+    if (!initDataHeader){
+      document.getElementById('app').innerHTML =
+        '<div style="padding:60px 20px; text-align:center; color:var(--ink-soft); font-size:15px;">Открой это приложение через Telegram-бота — так оно узнает, кто ты.</div>';
+      return;
+    }
+    profile = await loadProfile();
+    entries = await loadEntries();
+    render();
+  })();
+
+})();
+</script>
+</body>
+</html>
